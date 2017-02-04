@@ -1,0 +1,46 @@
+version: "2"
+
+services:
+  search-api:
+    build: ./api
+    volumes:
+      - ./api:/usr/src/app
+    links:
+      - search-elasticsearch
+    environment:
+      - ELASTICSEARCH_HOST=search-elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - PORT=3333
+    ports:
+      - "3333:3333"
+    restart: always
+  search-nginx:
+    build: ./nginx
+    links:
+      - search-api
+    volumes:
+      - ./nginx/conf:/etc/nginx/sites
+      - ./search-spa/build:/usr/share/nginx/html
+      - ./elastic-ingestion/files:/data/downloads
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+  search-elasticsearch:
+    build: ./elasticsearch
+    volumes:
+      - ./elasticsearch/config:/usr/share/elasticsearch/config
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+      - ./elasticsearch/logs:/usr/share/elasticsearch/logs
+    ports:
+      - "9200:9200"
+    restart: always
+  search-kibana:
+    restart: always
+    image: kibana
+    ports:
+      - 5601:5601
+    links:
+      - search-elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://search-elasticsearch:9200
